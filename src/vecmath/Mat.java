@@ -161,7 +161,8 @@ public class Mat implements Serializable {
     }
     
     public float getRotation2() {
-        return (float) Math.acos(getRotationMatrix().A[0][0]);
+        return (float) Math.atan2(getRotationMatrix().A[1][0],
+            getRotationMatrix().A[0][0]);
     }
     
     public Quat getRotation3() {
@@ -182,6 +183,26 @@ public class Mat implements Serializable {
     
     public Vec getScale() {
         return new Vec(width()-1, i -> col(i).length());
+    }
+    
+    public Mat interpolate2(Mat m, float t) {
+        
+        Vec t1 = getTranslation(), t2 = m.getTranslation();
+        float r1 = getRotation2(), r2 = m.getRotation2();
+        Vec s1 = getScale(), s2 = m.getScale();
+        
+        float angle = r2 - r1;
+        if(angle > Math.PI) angle -= 2.0F * Math.PI;
+        return transform2(t1.lerp(t2, t), angle*t, s1.lerp(s2, t));
+    }
+    
+    public Mat interpolate3(Mat m, float t) {
+        
+        Vec t1 = getTranslation(), t2 = m.getTranslation();
+        Quat r1 = getRotation3(), r2 = m.getRotation3();
+        Vec s1 = getScale(), s2 = m.getScale();
+        
+        return transform3(t1.lerp(t2, t), r1.slerp(r2, t), s1.lerp(s2, t));
     }
     
     public Vec row(int r) {
@@ -282,6 +303,22 @@ public class Mat implements Serializable {
     
     public static Mat scale(float... s) {
         return scale(new Vec(s));
+    }
+    
+    public static Mat transform2(Vec translation, float rotation, Vec scale) {
+        return translate(translation).mul(rotate2(rotation)).mul(scale(scale));
+    }
+    
+    public static Mat transform2(Vec translation, float rotation) {
+        return translate(translation).mul(rotate2(rotation));
+    }
+    
+    public static Mat transform3(Vec translation, Quat rotation, Vec scale) {
+        return translate(translation).mul(rotate3(rotation)).mul(scale(scale));
+    }
+    
+    public static Mat transform3(Vec translation, Quat rotation) {
+        return translate(translation).mul(rotate3(rotation));
     }
     
     public static Mat projection(float fov, float aspect, float near, float far) {
