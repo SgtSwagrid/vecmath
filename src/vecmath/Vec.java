@@ -119,8 +119,8 @@ public class Vec implements Serializable {
         return sub(proj).negate().add(proj);
     }
     
-    public Vec lerp(Vec v, float s) {
-        return mul(1.0F-s).add(v.mul(s));
+    public Vec lerp(Vec v, float t) {
+        return mul(1.0F-t).add(v.mul(t));
     }
     
     public Vec midpoint(Vec v) {

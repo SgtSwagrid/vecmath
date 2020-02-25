@@ -133,31 +133,51 @@ public class Mat implements Serializable {
         return cofactor().transpose();
     }
     
+    public float trace() {
+        
+        if(height() != width())
+            throw new IllegalArgumentException();
+        
+        float trace = 0.0F;
+        
+        for(int i = 0; i < height(); i++) {
+            trace += A[i][i];
+        }
+        return trace;
+    }
+    
     public Mat changeBasis(Mat basis) {
         return basis.invert().mul(this);
-    }
-    
-    public Mat globalTransform(Mat m) {
-        return m.mul(this);
-    }
-    
-    public Mat extrinsicTransform(Mat m) {
-        Mat tm = translate(getTranslation());
-        return tm.mul(m).mul(tm.invert()).mul(this);
-    }
-    
-    public Mat intrinsicTransform(Mat m) {
-        return translate(getTranslation()).mul(getRotation())
-            .mul(m).mul(scale(getScale()));
     }
     
     public Vec getTranslation() {
         return col(width()-1).toCartesian();
     }
     
-    public Mat getRotation() {
-        return globalTransform(scale(getScale()).invert()
-            .mul(translate(getTranslation().negate())));
+    public Mat getRotationMatrix() {
+        return scale(getScale()).invert()
+            .mul(translate(getTranslation().negate()))
+            .mul(this);
+    }
+    
+    public float getRotation2() {
+        return (float) Math.acos(getRotationMatrix().A[0][0]);
+    }
+    
+    public Quat getRotation3() {
+        
+        Mat r = getRotationMatrix();
+        
+        return new Quat(new float[] {
+            (float) Math.sqrt(1.0F + r.A[0][0] + r.A[1][1] + r.A[2][2])
+                * 0.5F,
+            (float) Math.sqrt(1.0F + r.A[0][0] - r.A[1][1] - r.A[2][2])
+                * 0.5F * Math.signum(r.A[2][1] - r.A[1][2]),
+            (float) Math.sqrt(1.0F - r.A[0][0] + r.A[1][1] - r.A[2][2])
+                * 0.5F * Math.signum(r.A[0][2] - r.A[2][0]),
+            (float) Math.sqrt(1.0F - r.A[0][0] - r.A[1][1] + r.A[2][2])
+                * 0.5F * Math.signum(r.A[1][0] - r.A[0][1]),
+        }).normalize();
     }
     
     public Vec getScale() {
@@ -218,10 +238,10 @@ public class Mat implements Serializable {
         return translate(new Vec(t));
     }
     
-    public static Mat rotate2(float angle) {
+    public static Mat rotate2(float a) {
         
-        float c = (float) Math.cos(angle);
-        float s = (float) Math.sin(angle);
+        float c = (float) Math.cos(a);
+        float s = (float) Math.sin(a);
         
         return new Mat(new float[][] {
             {c, -s, 0.0F},
@@ -230,46 +250,29 @@ public class Mat implements Serializable {
         });
     }
     
-    public static Mat rotate2(float angle, Vec point) {
-        return translate(point.negate())
-            .mul(rotate2(angle))
-            .mul(translate(point));
+    public static Mat rotate2(float a, Vec o) {
+        return translate(o)
+            .mul(rotate2(a))
+            .mul(translate(o.negate()));
     }
     
-    public static Mat rotate3(float angle, Vec axis) {
+    public static Mat rotate3(Quat q) {
         
-        if(axis.dimensions() != 3)
-            throw new IllegalArgumentException();
-        
-        Vec a = axis.normalize();
-        float x = a.val(0), y = a.val(1), z = a.val(2);
-        
-        float c = (float) Math.cos(angle);
-        float s = (float) Math.sin(angle);
-        float C = 1 - c;
+        q = q.normalize();
+        float a = q.A[0], b = q.A[1], c = q.A[2], d = q.A[3];
         
         return new Mat(new float[][] {
-            {x*x*C+c, x*y*C-z*s, x*z*C+y*s, 0.0F},
-            {y*x*C+z*s, y*y*C+c, y*z*C-x*s, 0.0F},
-            {z*x*C-y*s, x*y*C+x*s, z*z*C+c, 0.0F},
+            {a*a + b*b - c*c - d*d, 2*b*c - 2*a*d, 2*b*d + 2*a*c, 0.0F},
+            {2*b*c + 2*a*d, a*a - b*b + c*c - d*d, 2*c*d - 2*a*b, 0.0F},
+            {2*b*d - 2*a*c, 2*c*d + 2*a*b, a*a - b*b - c*c + d*d, 0.0F},
             {0.0F, 0.0F, 0.0F, 1.0F}
         });
     }
     
-    public static Mat rotate3(float angle, int axis) {
-        return rotate3(angle, Vec.basis(axis, 3));
-    }
-    
-    public static Mat rotate3(float angle, Vec axis, Vec point) {
-        return translate(point.negate())
-            .mul(rotate3(angle, axis))
-            .mul(translate(point));
-    }
-    
-    public static Mat rotate3(float yaw, float pitch, float roll) {
-        return rotate3(yaw, Vec.basis(0, 3))
-            .mul(rotate3(-pitch, Vec.basis(1, 3)))
-            .mul(rotate3(roll, Vec.basis(2, 3)));
+    public static Mat rotate3(Quat q, Vec o) {
+        return translate(o)
+            .mul(rotate3(q))
+            .mul(translate(o.negate()));
     }
     
     public static Mat scale(Vec s) {
