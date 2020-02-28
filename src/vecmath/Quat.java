@@ -3,23 +3,50 @@ package vecmath;
 import java.io.Serializable;
 import java.util.function.Function;
 
+/**
+ * Immutable quaternion type for computer graphics.
+ * Used to represent rotations in 3-dimensional space.
+ * @author Alec Dorrington
+ */
 public class Quat implements Serializable {
     
     private static final long serialVersionUID = 7322359333184172345L;
     
+    /** The contents of the quaternion. */
     final float[] A;
     
-    public Quat(float[] a) { A = a; }
+    /**
+     * Construct a new quaternion.
+     * @param a the contents of the quaternion.
+     */
+    public Quat(float[] a) {
+        this(i -> a[i]);
+    }
     
+    /**
+     * Construct a new quaternion from a vector part.
+     * Uses a scalar part of 0 by default.
+     * @param v the vector part of the quaternion.
+     */
     public Quat(Vec v) {
         this(0, v);
     }
     
+    /**
+     * Construct a new quaternion from a vector and scalar part.
+     * @param s the scalar part of the quaternion.
+     * @param v the vector part of the quaternion.
+     */
     public Quat(float s, Vec v) {
         this(i -> i==0 ? s : v.A[i-1]);
         if(v.dimensions() != 3) throw new IllegalArgumentException();
     }
     
+    /**
+     * Construct a new quaternion using a generator.
+     * The quaternion accepts an index and should return a corresponding value.
+     * @param generator the function for generating the quaternion's contents.
+     */
     public Quat(Function<Integer, Float> generator) {
         
         A = new float[4];

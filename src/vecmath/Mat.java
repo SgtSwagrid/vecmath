@@ -4,21 +4,40 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.function.BiFunction;
 
+/**
+ * Arbitrary-dimensional immutable matrix type for computer graphics.
+ * Used to represent general affine and projective transformations.
+ * @author Alec Dorrington
+ */
 public class Mat implements Serializable {
     
     private static final long serialVersionUID = 3888722482803464661L;
     
+    /** The contents of the matrix. */
     final float[][] A;
     
-    public Mat(float[][] a) { A = a; }
+    /**
+     * Construct a new matrix.
+     * @param a the contents of the matrix, by row then column.
+     */
+    public Mat(float[][] a) {
+        this(a.length, a[0].length, (r, c) -> a[r][c]);
+    }
     
-    public Mat(int height, int width,
+    /**
+     * Construct a new matrix using a generator. The generator
+     * accepts a row and column and should return a corresponding value.
+     * @param rows the number of rows in the matrix.
+     * @param width the number of columns in the matrix.
+     * @param generator the function for generating the matrix's contents.
+     */
+    public Mat(int rows, int cols,
             BiFunction<Integer, Integer, Float> generator) {
         
-        A = new float[height][width];
+        A = new float[rows][cols];
         
-        for(int r = 0; r < height; r++) {
-            for(int c = 0; c < width; c++) {
+        for(int r = 0; r < rows; r++) {
+            for(int c = 0; c < cols; c++) {
                 A[r][c] = generator.apply(r, c);
             }
         }
